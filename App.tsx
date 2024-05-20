@@ -188,7 +188,7 @@ async function runModel() {
 
 export default function App() {
   const [loading, setLoading] = React.useState(true);
-
+  const VECTOR_SIZE = 384;
   React.useEffect(() => {
     (async () => {
       const db = await SQLite.openDatabaseAsync("Email-Vectors.db");
@@ -199,25 +199,24 @@ export default function App() {
         DROP TABLE IF EXISTS email_vectors;
 
         CREATE TABLE IF NOT EXISTS email_vectors (
-          messageID TEXT PRIMARY KEY,
-          subject TEXT,
-          body TEXT,
-          ${Array.from({ length: 1536 }, (_, i) => `vector_component_${i + 1} REAL`).join(", ")}
-        );
+                  messageID TEXT PRIMARY KEY,
+                  subject TEXT,
+                  body TEXT,
+                  ${Array.from({ length: VECTOR_SIZE }, (_, i) => `vector_component_${i + 1} REAL`).join(", ")}
+                );
       `;
       await db.execAsync(createTableQuery);
 
       // Prepare the insert statement
       const insertQuery = `
-        INSERT INTO email_vectors (messageID, subject, body, ${Array.from({ length: 1536 }, (_, i) => `vector_component_${i + 1}`).join(", ")})
-        VALUES ($messageID, $subject, $body, ${Array.from({ length: 1536 }, (_, i) => `$vector_component_${i + 1}`).join(", ")});
+        INSERT INTO email_vectors (messageID, subject, body, ${Array.from({ length: VECTOR_SIZE }, (_, i) => `vector_component_${i + 1}`).join(", ")})
+        VALUES ($messageID, $subject, $body, ${Array.from({ length: VECTOR_SIZE }, (_, i) => `$vector_component_${i + 1}`).join(", ")});
       `;
       const statement = await db.prepareAsync(insertQuery);
 
       try {
         for (const email of emails) {
           const vector = await generateVector(email.Snippet);
-          console.log(vector);
           // Create the parameters object for the insert statement
           const params = {
             $messageID: email.messageId,
@@ -241,7 +240,10 @@ export default function App() {
       // Query to get the first row
       const firstRow = await db.getFirstAsync("SELECT * FROM email_vectors");
       if (firstRow) {
-        console.log("First row in the table:", firstRow);
+        console.log(
+          "First row in the table:",
+          JSON.stringify(firstRow, null, 2),
+        );
       } else {
         console.log("No rows found in the table.");
       }
