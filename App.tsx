@@ -17,6 +17,8 @@ interface Email {
   Body: string;
 }
 
+const VECTOR_SIZE = 384;
+
 const emails: Email[] = [
   {
     messageId: "001",
@@ -81,75 +83,32 @@ async function generateVector(text: string) {
   return vector["787"].cpuData;
 }
 
-async function semanticSearch(
-  query: string,
-  emails: Email[],
-): Promise<Email[]> {
-  // Load your ONNX model as in the example you provided
-  const assets = await Asset.loadAsync(require("./assets/st/model.onnx"));
-  const modelUri = assets[0].localUri;
-  if (!modelUri) {
-    Alert.alert("failed to get model URI", `${assets[0]}`);
-    return [];
-  }
-  const myModel = await ort.InferenceSession.create(modelUri);
+async function semanticSearch(query: string): Promise<Email[]> {
+  const db = await SQLite.openDatabaseAsync("Email-Vectors.db");
 
-  const tokenizer = loadTokenizer();
-  const encodedQuery = await tokenizer.then((t) => t.tokenize(query));
-  const modelInputQuery = createModelInput(encodedQuery);
+  const queryVector = await generateVector(query);
 
-  const outputQuery = await myModel.run(
-    modelInputQuery["_j"],
-    myModel.outputNames,
-  );
+  const allRows = await db.getAllAsync("SELECT * from email_vectors");
 
-  const scores: Array<[Email, number]> = [];
+  const scores = [];
 
-  for (const email of emails) {
-    const encodedEmail = await tokenizer.then((t) => t.tokenize(email.Snippet));
-    console.log("encoded : ", encodedEmail);
-    const modelInputEmail = createModelInput(encodedEmail);
+  for (const row of allRows) {
+    const vector = [];
 
-    const outputEmail = await myModel.run(
-      modelInputEmail["_j"],
-      myModel.outputNames,
-    );
-
-    const similarity = calculateSimilarity(outputQuery, outputEmail);
-    scores.push([email, similarity]);
-  }
-
-  scores.sort((a, b) => b[1] - a[1]);
-
-  return scores.map((score) => score[0]);
-}
-
-async function loadModel() {
-  try {
-    const assets = await Asset.loadAsync(require("./assets/st/model.onnx"));
-    const modelUri = assets[0].localUri;
-    if (!modelUri) {
-      Alert.alert("failed to get model URI", `${assets[0]}`);
-    } else {
-      const query = "Green Rides trip receipt";
-      semanticSearch(query, emails).then((similarEmails) => {
-        console.log("Similar emails:");
-        for (const em of similarEmails.slice(0, 10)) {
-          console.log(em.Subject);
-          console.log("\n");
-        }
-      });
+    for (let i = 1; i <= VECTOR_SIZE; i++) {
+      vector.push(row[`v_${i}`]);
     }
-  } catch (e) {
-    Alert.alert("failed to load model", `${e}`);
-    throw e;
+
+    const similarity = calculateSimilarity(queryVector, vector);
+
+    scores.push([{ subject: row.subject, body: row.body }, similarity]);
+    scores.sort((a, b) => b[1] - a[1]);
   }
+
+  return scores[0];
 }
 
-function calculateSimilarity(output1, output2) {
-  const embedding1 = output1["787"].cpuData;
-  const embedding2 = output2["787"].cpuData;
-
+function calculateSimilarity(embedding1, embedding2) {
   const dot_product = embedding1.reduce(
     (sum, val, idx) => sum + val * embedding2[idx],
     0,
@@ -161,34 +120,10 @@ function calculateSimilarity(output1, output2) {
   return cosine_similarity;
 }
 
-async function runModel() {
-  try {
-    // Prepare model input data
-    // Note: In real use case, you must set the inputData to the actual input values
-    const inputData = new Float32Array(28 * 28);
-    const feeds: Record<string, ort.Tensor> = {};
-    feeds[myModel.inputNames[0]] = new ort.Tensor(inputData, [1, 1, 28, 28]);
-    // Run inference session
-    const fetches = await myModel.run(feeds);
-    // Process output
-    const output = fetches[myModel.outputNames[0]];
-    if (!output) {
-      Alert.alert("failed to get output", `${myModel.outputNames[0]}`);
-    } else {
-      Alert.alert(
-        "model inference successfully",
-        `output shape: ${output.dims}, output data: ${output.data}`,
-      );
-    }
-  } catch (e) {
-    Alert.alert("failed to inference model", `${e}`);
-    throw e;
-  }
-}
-
 export default function App() {
   const [loading, setLoading] = React.useState(true);
-  const VECTOR_SIZE = 384;
+  const [result, setResult] = React.useState("");
+
   React.useEffect(() => {
     (async () => {
       const db = await SQLite.openDatabaseAsync("Email-Vectors.db");
@@ -202,15 +137,15 @@ export default function App() {
                   messageID TEXT PRIMARY KEY,
                   subject TEXT,
                   body TEXT,
-                  ${Array.from({ length: VECTOR_SIZE }, (_, i) => `vector_component_${i + 1} REAL`).join(", ")}
+                  ${Array.from({ length: VECTOR_SIZE }, (_, i) => `v_${i + 1} REAL`).join(", ")}
                 );
       `;
       await db.execAsync(createTableQuery);
 
       // Prepare the insert statement
       const insertQuery = `
-        INSERT INTO email_vectors (messageID, subject, body, ${Array.from({ length: VECTOR_SIZE }, (_, i) => `vector_component_${i + 1}`).join(", ")})
-        VALUES ($messageID, $subject, $body, ${Array.from({ length: VECTOR_SIZE }, (_, i) => `$vector_component_${i + 1}`).join(", ")});
+        INSERT INTO email_vectors (messageID, subject, body, ${Array.from({ length: VECTOR_SIZE }, (_, i) => `v_${i + 1}`).join(", ")})
+        VALUES ($messageID, $subject, $body, ${Array.from({ length: VECTOR_SIZE }, (_, i) => `$v_${i + 1}`).join(", ")});
       `;
       const statement = await db.prepareAsync(insertQuery);
 
@@ -223,7 +158,7 @@ export default function App() {
             $subject: email.Subject,
             $body: email.Body,
             ...vector.reduce((acc, val, idx) => {
-              acc[`$vector_component_${idx + 1}`] = val;
+              acc[`$v_${idx + 1}`] = val;
               return acc;
             }, {}),
           };
@@ -238,35 +173,41 @@ export default function App() {
       }
 
       // Query to get the first row
-      const firstRow = await db.getFirstAsync("SELECT * FROM email_vectors");
-      if (firstRow) {
-        console.log(
-          "First row in the table:",
-          JSON.stringify(firstRow, null, 2),
-        );
-      } else {
-        console.log("No rows found in the table.");
-      }
+      // const firstRow = await db.getFirstAsync("SELECT * FROM email_vectors");
+      // if (firstRow) {
+      //   console.log(
+      //     "First row in the table:",
+      //     JSON.stringify(firstRow, null, 2),
+      //   );
+      // } else {
+      //   console.log("No rows found in the table.");
+      // }
       setLoading(false);
     })();
   }, []);
 
   return (
-    <View style={styles.container}>
-      {!loading ? (
-        <>
-          <Text>Vella-Feed</Text>
-          <Button
-            title="Load model"
-            onPress={() => console.log("Load model")}
-          />
-          <Button title="Run" onPress={() => console.log("Run model")} />
-          <StatusBar style="auto" />
-        </>
-      ) : (
-        <Text>Loading</Text>
-      )}
-    </View>
+    <SQLite.SQLiteProvider databaseName="Email-Vectors.db">
+      <View style={styles.container}>
+        {!loading ? (
+          <>
+            <Text>Vella-Feed</Text>
+            <Button
+              title="Semantic Search"
+              onPress={async () => {
+                const result = await semanticSearch("Red cab");
+                console.log(result);
+                setResult(result[0].subject);
+              }}
+            />
+            <StatusBar style="auto" />
+            <Text>Result : {result}</Text>
+          </>
+        ) : (
+          <Text>Loading</Text>
+        )}
+      </View>
+    </SQLite.SQLiteProvider>
   );
 }
 
