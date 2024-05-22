@@ -141,7 +141,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text>Vella-Feed</Text>
-      <Button title="Semantic Search" onPress={extractEmailData} />
+      <Button title="Extract Email Data" onPress={extractEmailData} />
       <StatusBar style="auto" />
       <Text>Result : {JSON.stringify(result, null, 2)}</Text>
       <Text>{`Summary : You traveled from ${result.pickup} to ${result.dropoff}, covering a distance of ${result.distance} ${result.distanceUnit}. The total fare was ${result.currency}${result.total}.`}</Text>
