@@ -128,7 +128,7 @@ export default function App() {
     const dropoffMatch = email.Body.match(emailDataRegex.dropoff);
     const distanceMatch = email.Body.match(emailDataRegex.distance);
 
-    return {
+    const extractedData = {
       total: totalMatch ? parseFloat(totalMatch[2]) : null,
       currency: totalMatch ? totalMatch[1] : null,
       pickup: pickupMatch ? pickupMatch[1].trim() : null,
@@ -136,15 +136,20 @@ export default function App() {
       distance: distanceMatch ? parseFloat(distanceMatch[1]) : null,
       distanceUnit: distanceMatch ? distanceMatch[2] : null,
     };
+
+    setResult(extractedData);
   };
 
   return (
     <View style={styles.container}>
-      <Text>Vella-Feed</Text>
       <Button title="Extract Email Data" onPress={extractEmailData} />
       <StatusBar style="auto" />
       <Text>Result : {JSON.stringify(result, null, 2)}</Text>
-      <Text>{`Summary : You traveled from ${result.pickup} to ${result.dropoff}, covering a distance of ${result.distance} ${result.distanceUnit}. The total fare was ${result.currency}${result.total}.`}</Text>
+      <Text>
+        {result
+          ? `Summary : You traveled from ${result.pickup} to ${result.dropoff}, covering a distance of ${result.distance} ${result.distanceUnit}. The total fare was ${result.currency}${result.total}.`
+          : ""}
+      </Text>
     </View>
   );
 }
