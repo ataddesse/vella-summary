@@ -10,14 +10,15 @@
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		2B358A5A2BF444D185D0883D /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F4C00AF1D748EAB94749F3 /* noop-file.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		96905EF65AED1B983A6B3ABC /* libPods-vellaproject.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 58EEBF8E8E6FB1BC6CAF49B5 /* libPods-vellaproject.a */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
+		B64CFF21AD604CBE97BDD10A /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FE4540F12E44A67AB1DB88F /* noop-file.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0FE4540F12E44A67AB1DB88F /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "vellaproject/noop-file.swift"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* vellaproject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = vellaproject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = vellaproject/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = vellaproject/AppDelegate.mm; sourceTree = "<group>"; };
@@ -26,11 +27,10 @@
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = vellaproject/main.m; sourceTree = "<group>"; };
 		58EEBF8E8E6FB1BC6CAF49B5 /* libPods-vellaproject.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-vellaproject.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C2E3173556A471DD304B334 /* Pods-vellaproject.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-vellaproject.debug.xcconfig"; path = "Target Support Files/Pods-vellaproject/Pods-vellaproject.debug.xcconfig"; sourceTree = "<group>"; };
-		72F4C00AF1D748EAB94749F3 /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "vellaproject/noop-file.swift"; sourceTree = "<group>"; };
 		7A4D352CD337FB3A3BF06240 /* Pods-vellaproject.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-vellaproject.release.xcconfig"; path = "Target Support Files/Pods-vellaproject/Pods-vellaproject.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = vellaproject/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		E87B43A7F5C046B389AC1CE4 /* vellaproject-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "vellaproject-Bridging-Header.h"; path = "vellaproject/vellaproject-Bridging-Header.h"; sourceTree = "<group>"; };
+		DA7478514098470899B96831 /* vellaproject-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "vellaproject-Bridging-Header.h"; path = "vellaproject/vellaproject-Bridging-Header.h"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-vellaproject/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -57,8 +57,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				13B07FB71A68108700A75B9A /* main.m */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				72F4C00AF1D748EAB94749F3 /* noop-file.swift */,
-				E87B43A7F5C046B389AC1CE4 /* vellaproject-Bridging-Header.h */,
+				0FE4540F12E44A67AB1DB88F /* noop-file.swift */,
+				DA7478514098470899B96831 /* vellaproject-Bridging-Header.h */,
 			);
 			name = vellaproject;
 			sourceTree = "<group>";
@@ -144,13 +144,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "vellaproject" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				C8334900E05BD1A8159A2181 /* [Expo] Configure project */,
+				B1168B49E735EC5965E1590D /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				94C744FBBC26FCD0A683718C /* [CP] Embed Pods Frameworks */,
+				99EC72DB5CD11A6BDD2E750C /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -267,7 +267,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-vellaproject/Pods-vellaproject-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		94C744FBBC26FCD0A683718C /* [CP] Embed Pods Frameworks */ = {
+		99EC72DB5CD11A6BDD2E750C /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -287,7 +287,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-vellaproject/Pods-vellaproject-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		C8334900E05BD1A8159A2181 /* [Expo] Configure project */ = {
+		B1168B49E735EC5965E1590D /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -316,7 +316,7 @@
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
-				2B358A5A2BF444D185D0883D /* noop-file.swift in Sources */,
+				B64CFF21AD604CBE97BDD10A /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

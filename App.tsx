@@ -1,5 +1,4 @@
 import { Asset } from "expo-asset";
-import * as SQLite from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
 import * as ort from "onnxruntime-react-native";
 import { Alert, Button, StyleSheet, Text, View } from "react-native";
@@ -17,16 +16,14 @@ interface Email {
   Body: string;
 }
 
-const VECTOR_SIZE = 384;
-
-const emails: Email[] = [
+const emails = [
   {
     messageId: "001",
     Labels: ["inbox", "receipts"],
     Snippet: "Your ride with Yellow Cabs has been completed...",
     From: "receipts@yellowcabs.com",
     Subject: "Your Yellow Cabs Ride Receipt",
-    Body: "Dear Customer,\n\nThank you for riding with Yellow Cabs. Your ride from 123 Main St to 456 Elm St has been completed. The total fare is $25.00.\n\nBest Regards,\nYellow Cabs",
+    Body: "Dear Customer,\n\nThank you for riding with Yellow Cabs. Your ride from 123 Main St to 456 Elm St has been completed. The total fare is $25.00. Distance covered: 12 miles.\n\nBest Regards,\nYellow Cabs",
   },
   {
     messageId: "002",
@@ -34,7 +31,7 @@ const emails: Email[] = [
     Snippet: "Thank you for choosing Blue Taxi Service...",
     From: "support@bluetaxi.com",
     Subject: "Blue Taxi Service Ride Receipt",
-    Body: "Hello,\n\nWe appreciate you choosing Blue Taxi Service. Your trip from 789 Oak St to 101 Pine St is now complete. The total amount charged is $30.00.\n\nSincerely,\nBlue Taxi Service",
+    Body: "Hello,\n\nWe appreciate you choosing Blue Taxi Service. Your trip from 789 Oak St to 101 Pine St is now complete. The total amount charged is $30.00. You traveled 8.5 km.\n\nSincerely,\nBlue Taxi Service",
   },
   {
     messageId: "003",
@@ -42,7 +39,7 @@ const emails: Email[] = [
     Snippet: "Your trip with Green Rides has ended...",
     From: "no-reply@greenrides.com",
     Subject: "Green Rides Receipt",
-    Body: "Hi,\n\nYour ride with Green Rides from 111 Maple St to 222 Cedar St has concluded. The fare for this trip is $28.50.\n\nThank you,\nGreen Rides",
+    Body: "Hi,\n\nYour ride with Green Rides from 111 Maple St to 222 Cedar St has concluded. The fare for this trip : $28.50. Total journey distance: 7.00 miles.\n\nThank you,\nGreen Rides",
   },
   {
     messageId: "004",
@@ -50,7 +47,7 @@ const emails: Email[] = [
     Snippet: "Ride with Red Taxis completed successfully...",
     From: "receipts@redtaxis.com",
     Subject: "Receipt for Your Red Taxis Ride",
-    Body: "Dear Valued Customer,\n\nYour recent ride with Red Taxis from 333 Birch St to 444 Spruce St has been completed. The total fare is $22.75.\n\nBest,\nRed Taxis",
+    Body: "Dear Valued Customer,\n\nYour recent ride with Red Taxis from 333 Birch St to 444 Spruce St has been completed. The total fare is $22.75. Distance covered: 10 miles.\n\nBest,\nRed Taxis",
   },
   {
     messageId: "005",
@@ -58,9 +55,18 @@ const emails: Email[] = [
     Snippet: "Your recent journey with Silver Cabs...",
     From: "contact@silvercabs.com",
     Subject: "Silver Cabs Ride Receipt",
-    Body: "Dear Customer,\n\nThank you for using Silver Cabs. Your trip from 555 Walnut St to 666 Chestnut St has been successfully completed. The total fare charged is $27.00.\n\nRegards,\nSilver Cabs",
+    Body: "Dear Customer,\n\nThank you for using Silver Cabs. Your trip from 555 Walnut St to 666 Chestnut St has been successfully completed. The total fare charged is $27.00. Distance covered: 9.3 miles.\n\nRegards,\nSilver Cabs",
   },
 ];
+
+const emailDataRegex = {
+  total:
+    /(?:total (?:fare|amount charged|fare charged|fare for this trip|fare is|amount charged) is|fare for this trip :) (\$|€|£)([0-9]+(?:\.[0-9]{2})?)/i,
+  pickup: "from ([\\w\\s,]+) to",
+  dropoff: "to ([\\w\\s,]+) ?has",
+  distance:
+    /(?:Distance covered:|distance covered:|You traveled|Total journey distance:|Total distance:|distance:)\s([0-9]+(?:\.[0-9]+)?)\s?(miles|km)?/i,
+};
 
 let myModel: ort.InferenceSession;
 const vocabUrl = "./assets/st/vocab.json";
@@ -83,28 +89,20 @@ async function generateVector(text: string) {
   return vector["787"].cpuData;
 }
 
-async function semanticSearch(query: string): Promise<Email[]> {
-  const db = await SQLite.openDatabaseAsync("Email-Vectors.db");
-
+async function semanticSearch(query: string, regex: any): Promise<Email[]> {
   const queryVector = await generateVector(query);
-
-  const allRows = await db.getAllAsync("SELECT * from email_vectors");
 
   const scores = [];
 
-  for (const row of allRows) {
-    const vector = [];
+  const totalRegex = regex.total;
 
-    for (let i = 1; i <= VECTOR_SIZE; i++) {
-      vector.push(row[`v_${i}`]);
-    }
-
-    const similarity = calculateSimilarity(queryVector, vector);
-
-    scores.push([{ subject: row.subject, body: row.body }, similarity]);
+  for (const re of totalRegex) {
+    const regexVector = await generateVector(re[0]);
+    const similarity = calculateSimilarity(queryVector, regexVector);
+    scores.push([re, similarity]);
     scores.sort((a, b) => b[1] - a[1]);
   }
-
+  console.log(scores);
   return scores[0];
 }
 
@@ -121,93 +119,33 @@ function calculateSimilarity(embedding1, embedding2) {
 }
 
 export default function App() {
-  const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState("");
 
-  React.useEffect(() => {
-    (async () => {
-      const db = await SQLite.openDatabaseAsync("Email-Vectors.db");
+  const extractEmailData = () => {
+    const email = emails[2];
+    const totalMatch = email.Body.match(emailDataRegex.total);
+    const pickupMatch = email.Body.match(emailDataRegex.pickup);
+    const dropoffMatch = email.Body.match(emailDataRegex.dropoff);
+    const distanceMatch = email.Body.match(emailDataRegex.distance);
 
-      // Create the email_vectors table with 1536 columns for vector components
-      const createTableQuery = `
-        PRAGMA journal_mode = WAL;
-        DROP TABLE IF EXISTS email_vectors;
-
-        CREATE TABLE IF NOT EXISTS email_vectors (
-                  messageID TEXT PRIMARY KEY,
-                  subject TEXT,
-                  body TEXT,
-                  ${Array.from({ length: VECTOR_SIZE }, (_, i) => `v_${i + 1} REAL`).join(", ")}
-                );
-      `;
-      await db.execAsync(createTableQuery);
-
-      // Prepare the insert statement
-      const insertQuery = `
-        INSERT INTO email_vectors (messageID, subject, body, ${Array.from({ length: VECTOR_SIZE }, (_, i) => `v_${i + 1}`).join(", ")})
-        VALUES ($messageID, $subject, $body, ${Array.from({ length: VECTOR_SIZE }, (_, i) => `$v_${i + 1}`).join(", ")});
-      `;
-      const statement = await db.prepareAsync(insertQuery);
-
-      try {
-        for (const email of emails) {
-          const vector = await generateVector(email.Snippet);
-          // Create the parameters object for the insert statement
-          const params = {
-            $messageID: email.messageId,
-            $subject: email.Subject,
-            $body: email.Body,
-            ...vector.reduce((acc, val, idx) => {
-              acc[`$v_${idx + 1}`] = val;
-              return acc;
-            }, {}),
-          };
-
-          const result = await statement.executeAsync(params);
-          console.log("Inserted:", result);
-        }
-      } catch (error) {
-        console.error("Error inserting data:", error);
-      } finally {
-        await statement.finalizeAsync();
-      }
-
-      // Query to get the first row
-      // const firstRow = await db.getFirstAsync("SELECT * FROM email_vectors");
-      // if (firstRow) {
-      //   console.log(
-      //     "First row in the table:",
-      //     JSON.stringify(firstRow, null, 2),
-      //   );
-      // } else {
-      //   console.log("No rows found in the table.");
-      // }
-      setLoading(false);
-    })();
-  }, []);
+    return {
+      total: totalMatch ? parseFloat(totalMatch[2]) : null,
+      currency: totalMatch ? totalMatch[1] : null,
+      pickup: pickupMatch ? pickupMatch[1].trim() : null,
+      dropoff: dropoffMatch ? dropoffMatch[1].trim() : null,
+      distance: distanceMatch ? parseFloat(distanceMatch[1]) : null,
+      distanceUnit: distanceMatch ? distanceMatch[2] : null,
+    };
+  };
 
   return (
-    <SQLite.SQLiteProvider databaseName="Email-Vectors.db">
-      <View style={styles.container}>
-        {!loading ? (
-          <>
-            <Text>Vella-Feed</Text>
-            <Button
-              title="Semantic Search"
-              onPress={async () => {
-                const result = await semanticSearch("Red cab");
-                console.log(result);
-                setResult(result[0].subject);
-              }}
-            />
-            <StatusBar style="auto" />
-            <Text>Result : {result}</Text>
-          </>
-        ) : (
-          <Text>Loading</Text>
-        )}
-      </View>
-    </SQLite.SQLiteProvider>
+    <View style={styles.container}>
+      <Text>Vella-Feed</Text>
+      <Button title="Semantic Search" onPress={extractEmailData} />
+      <StatusBar style="auto" />
+      <Text>Result : {JSON.stringify(result, null, 2)}</Text>
+      <Text>{`Summary : You traveled from ${result.pickup} to ${result.dropoff}, covering a distance of ${result.distance} ${result.distanceUnit}. The total fare was ${result.currency}${result.total}.`}</Text>
+    </View>
   );
 }
 
@@ -217,5 +155,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+    margin: 10,
   },
 });
