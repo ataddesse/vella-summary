@@ -3,68 +3,80 @@ import { Alert, Button, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import emails from "./emails.js";
 
-const sourcePattern = /(Lyft|Uber)/;
-
-const emailDataRegex = {
-  lyft: {
-    total: /Lyft fare.*?\$([\d\.]+)/,
-
-    pickup: /Pickup\s+\d{1,2}:\d{2}\s+[AP]M\s+([^,]+,\s*[^,]+,\s*\w{2})/,
-
-    dropoff: /\d{4,}\s[\w\s]+,\s[\w\s]+,\s[A-Z]{2}\s\d{5},\s[A-Z]{2}/,
-
-    distance: /Lyft fare\s+\(([\d\.]+)mi/,
-  },
-  uber: {
-    total: /Total \$([0-9]+\.[0-9]{2})/,
-    location:
-      /(\d{1,2}:\d{2} [AP]M)\n([\d\w\s,]+),\s*([\w\s]+), ([A-Z]{2}) (\d{5}), ([A-Z]{2})/g,
-    distance: /UberX\s+([\d\.]+)\s+miles/,
-  },
-};
 export default function App() {
   const [result, setResult] = React.useState({});
 
   function identifyEmailSource(text) {
+    const sourcePattern = /(Lyft|Uber)/;
     const match = text.match(sourcePattern);
-
     return match ? match[1] : "Unknown";
   }
 
   const extractEmailData = () => {
     const email = emails[0];
-
     const source = identifyEmailSource(email);
 
     let data = {};
 
     if (source === "Lyft") {
-      const patterns = emailDataRegex.lyft;
-      Object.keys(patterns).forEach((key) => {
-        const regex = patterns[key];
+      // Define regex patterns
+      const fareRegex = /\*\s*\$([\d.]+)\s*\*/;
+      const distanceRegex = /fare\s*\(([\d.]+mi|km|kms),/;
+      const pickupRegex = /Pickup\s+\d{1,2}:\d{2}\s+[APM]{2}\n\s*(.+?)\n/;
+      const dropoffRegex = /Drop-off\s+\d{1,2}:\d{2}\s+[APM]{2}\n\s*(.+?)\n/;
 
-        const match = email.match(regex);
+      // Execute regex on email content
+      const totalFareMatch = email.match(fareRegex);
+      const distanceMatches = email.match(distanceRegex);
+      const pickupMatches = email.match(pickupRegex);
+      const dropoffMatches = email.match(dropoffRegex);
 
-        if (match) {
-          data[key] = match[1];
-        }
-      });
+      console.log({ pickupMatches, dropoffMatches });
+
+      // Extracted information
+      const totalFare = totalFareMatch ? totalFareMatch[1] : null;
+      const distance = distanceMatches ? distanceMatches[1] : null;
+      const pickupLocation = pickupMatches ? pickupMatches[1].trim() : null;
+      const dropoffLocation = dropoffMatches ? dropoffMatches[1].trim() : null;
+
+      data.total = totalFare;
+      data.pickup = pickupLocation;
+      data.dropoff = dropoffLocation;
+      data.distance = distance;
     } else if (source === "Uber") {
-      const patterns = emailDataRegex.uber;
+      // Define regex pattern for the locations (including time)
+      const locationPattern =
+        /(\d{1,2}:\d{2}\s(?:AM|PM)\s*)([\w\s\d,.-]+),\s*([\w\s]+,\s*\w{2}\s*\d{5},\s*\w{2})/gi;
 
-      const location = email.match(patterns.location);
-      console.log(location);
-      if (location) {
-        data.pickup = location[0].split("\n")[1];
-        data.dropoff = location[1].split("\n")[1];
+      // Define regex pattern for the fare and distance
+      const farePattern = /Total\s*\$(\d+\.\d{2})/g;
+      const distancePattern = /(\d+\.\d+)\s*miles/g;
+
+      // Match patterns against the email content
+      const locations = [];
+      let matches;
+      while ((matches = locationPattern.exec(email)) !== null) {
+        const address = matches[2].trim() + matches[3].trim();
+        locations.push(address);
       }
 
-      data.total = email.match(patterns.total)[1];
+      // Extract fare
+      matches = farePattern.exec(email);
+      const fare = matches ? matches[1] : null;
 
-      data.distance = email.match(patterns.distance)[1];
+      // Extract distance
+      matches = distancePattern.exec(email);
+      const distance = matches ? matches[1] : null;
+
+      if (locations.length >= 2) {
+        data.pickup = locations[0];
+        data.dropoff = locations[1];
+      }
+
+      // Add fare and distance if found
+      if (fare) data.total = fare;
+      if (distance) data.distance = distance;
     }
-
-    console.log(data);
 
     setResult(data);
   };
@@ -76,7 +88,7 @@ export default function App() {
       <Text>Result : {JSON.stringify(result, null, 2)}</Text>
       <Text>
         {result.total
-          ? `Summary : You traveled from ${result.pickup} to ${result.dropoff}, covering a distance of ${result.distance} ${result.distanceUnit}. The total fare was ${result.currency}${result.total}.`
+          ? `Summary : You traveled from ${result.pickup} to ${result.dropoff}, covering a distance of ${result.distance}. The total fare was $${result.total}.`
           : ""}
       </Text>
     </View>
