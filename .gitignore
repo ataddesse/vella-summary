@@ -8,6 +8,8 @@ node_modules/
 dist/
 web-build/
 
+/assets/llama-2-7b.Q4_0.gguf
+
 # Native
 *.orig.*
 *.jks

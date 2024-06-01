@@ -1,96 +1,76 @@
-import { StatusBar } from "expo-status-bar";
-import { Alert, Button, StyleSheet, Text, View } from "react-native";
-import React from "react";
-import emails from "./emails.js";
+import { View, StyleSheet, Text, Button } from "react-native";
+import DocumentPicker from "react-native-document-picker";
+import { initLlama } from "llama.rn";
+import React, { useState } from "react";
+
+async function pickModelFile() {
+  try {
+    const res = await DocumentPicker.pick({
+      type: [DocumentPicker.types.allFiles],
+    });
+    return res[0].uri;
+  } catch (err) {
+    if (DocumentPicker.isCancel(err)) {
+      console.log("User cancelled the picker");
+    } else {
+      console.error(err);
+    }
+    return null;
+  }
+}
+
+async function init(modelUri) {
+  try {
+    // Initialize a Llama context with the model (may take a while)
+    const context = await initLlama({
+      model: modelUri,
+      use_mlock: true,
+      n_ctx: 2048,
+      n_gpu_layers: 0, // > 0: enable Metal on iOS
+      // embedding: true, // use embedding
+    });
+
+    console.log("Llama context initialized:", context);
+
+    // Do completion
+    const { text, timings } = await context.completion(
+      {
+        prompt:
+          "This is a conversation between user and llama, a friendly chatbot. respond in simple markdown.\n\nUser: Hello!\nLlama:",
+        n_predict: 100,
+        stop: ["</s>", "Llama:", "User:"],
+        // n_threads: 4,
+      },
+      (data) => {
+        // This is a partial completion callback
+        const { token } = data;
+        console.log({ token });
+      },
+    );
+
+    console.log("Result:", text);
+    console.log("Timings:", timings);
+  } catch (error) {
+    console.error("Initialization error:", error);
+  }
+}
 
 export default function App() {
-  const [result, setResult] = React.useState({});
+  const [modelUri, setModelUri] = useState(null);
 
-  function identifyEmailSource(text) {
-    const sourcePattern = /(Lyft|Uber)/;
-    const match = text.match(sourcePattern);
-    return match ? match[1] : "Unknown";
-  }
-
-  const extractEmailData = () => {
-    const email = emails[0];
-    const source = identifyEmailSource(email);
-
-    let data = {};
-
-    if (source === "Lyft") {
-      // Define regex patterns
-      const fareRegex = /\*\s*\$([\d.]+)\s*\*/;
-      const distanceRegex = /fare\s*\(([\d.]+mi|km|kms),/;
-      const pickupRegex = /Pickup\s+\d{1,2}:\d{2}\s+[APM]{2}\n\s*(.+?)\n/;
-      const dropoffRegex = /Drop-off\s+\d{1,2}:\d{2}\s+[APM]{2}\n\s*(.+?)\n/;
-
-      // Execute regex on email content
-      const totalFareMatch = email.match(fareRegex);
-      const distanceMatches = email.match(distanceRegex);
-      const pickupMatches = email.match(pickupRegex);
-      const dropoffMatches = email.match(dropoffRegex);
-
-      console.log({ pickupMatches, dropoffMatches });
-
-      // Extracted information
-      const totalFare = totalFareMatch ? totalFareMatch[1] : null;
-      const distance = distanceMatches ? distanceMatches[1] : null;
-      const pickupLocation = pickupMatches ? pickupMatches[1].trim() : null;
-      const dropoffLocation = dropoffMatches ? dropoffMatches[1].trim() : null;
-
-      data.total = totalFare;
-      data.pickup = pickupLocation;
-      data.dropoff = dropoffLocation;
-      data.distance = distance;
-    } else if (source === "Uber") {
-      // Define regex pattern for the locations (including time)
-      const locationPattern =
-        /(\d{1,2}:\d{2}\s(?:AM|PM)\s*)([\w\s\d,.-]+),\s*([\w\s]+,\s*\w{2}\s*\d{5},\s*\w{2})/gi;
-
-      // Define regex pattern for the fare and distance
-      const farePattern = /Total\s*\$(\d+\.\d{2})/g;
-      const distancePattern = /(\d+\.\d+)\s*miles/g;
-
-      // Match patterns against the email content
-      const locations = [];
-      let matches;
-      while ((matches = locationPattern.exec(email)) !== null) {
-        const address = matches[2].trim() + matches[3].trim();
-        locations.push(address);
-      }
-
-      // Extract fare
-      matches = farePattern.exec(email);
-      const fare = matches ? matches[1] : null;
-
-      // Extract distance
-      matches = distancePattern.exec(email);
-      const distance = matches ? matches[1] : null;
-
-      if (locations.length >= 2) {
-        data.pickup = locations[0];
-        data.dropoff = locations[1];
-      }
-
-      // Add fare and distance if found
-      if (fare) data.total = fare;
-      if (distance) data.distance = distance;
+  const handlePickModel = async () => {
+    const uri = await pickModelFile();
+    if (uri) {
+      setModelUri(uri);
+      await init(uri);
     }
-
-    setResult(data);
   };
 
   return (
     <View style={styles.container}>
-      <Button title="Extract Email Data" onPress={extractEmailData} />
-      <StatusBar style="auto" />
-      <Text>Result : {JSON.stringify(result, null, 2)}</Text>
-      <Text>
-        {result.total
-          ? `Summary : You traveled from ${result.pickup} to ${result.dropoff}, covering a distance of ${result.distance}. The total fare was $${result.total}.`
-          : ""}
-      </Text>
+      <Text>Hello</Text>
+      <Button title="Pick Model File" onPress={handlePickModel} />
+      {modelUri && <Text>Model loaded from: {modelUri}</Text>}
     </View>
   );
 }
